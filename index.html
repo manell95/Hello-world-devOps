@@ -1,0 +1,252 @@
+index.html
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Hello World DevOps - Portfolio</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        animation: gradientShift 10s ease infinite;
+      }
+
+      @keyframes gradientShift {
+        0%,
+        100% {
+          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        50% {
+          background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+        }
+      }
+
+      .container {
+        text-align: center;
+        background: rgba(255, 255, 255, 0.95);
+        padding: 3rem;
+        border-radius: 20px;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        max-width: 600px;
+        width: 90%;
+        animation: slideUp 1s ease;
+      }
+
+      @keyframes slideUp {
+        from {
+          transform: translateY(50px);
+          opacity: 0;
+        }
+        to {
+          transform: translateY(0);
+          opacity: 1;
+        }
+      }
+
+      h1 {
+        color: #333;
+        margin-bottom: 1rem;
+        font-size: 2.5rem;
+        font-weight: 700;
+      }
+
+      .subtitle {
+        color: #666;
+        margin-bottom: 2rem;
+        font-size: 1.1rem;
+        line-height: 1.6;
+      }
+
+      .tech-stack {
+        display: flex;
+        justify-content: center;
+        gap: 1rem;
+        margin: 2rem 0;
+        flex-wrap: wrap;
+      }
+
+      .tech {
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        color: white;
+        padding: 0.7rem 1.5rem;
+        border-radius: 25px;
+        font-size: 0.9rem;
+        font-weight: 600;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        transition: transform 0.3s ease;
+      }
+
+      .tech:hover {
+        transform: translateY(-2px);
+      }
+
+      .status-card {
+        background: #e8f5e8;
+        border: 2px solid #4caf50;
+        padding: 1.5rem;
+        border-radius: 15px;
+        margin: 2rem 0;
+        animation: pulse 2s infinite;
+      }
+
+      @keyframes pulse {
+        0%,
+        100% {
+          transform: scale(1);
+        }
+        50% {
+          transform: scale(1.02);
+        }
+      }
+
+      .status-title {
+        color: #2e7d32;
+        font-size: 1.2rem;
+        font-weight: 600;
+        margin-bottom: 1rem;
+      }
+
+      .info-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        margin-top: 1rem;
+      }
+
+      .info-item {
+        background: #f8f9fa;
+        padding: 1rem;
+        border-radius: 10px;
+        border-left: 4px solid #667eea;
+      }
+
+      .info-label {
+        font-weight: 600;
+        color: #333;
+        font-size: 0.9rem;
+      }
+
+      .info-value {
+        color: #666;
+        font-size: 0.85rem;
+        margin-top: 0.3rem;
+        word-break: break-all;
+      }
+
+      .loading {
+        color: #999;
+        font-style: italic;
+      }
+
+      .footer {
+        margin-top: 2rem;
+        padding-top: 1rem;
+        border-top: 1px solid #eee;
+        color: #888;
+        font-size: 0.9rem;
+      }
+
+      @media (max-width: 768px) {
+        .container {
+          padding: 2rem;
+        }
+        h1 {
+          font-size: 2rem;
+        }
+        .tech-stack {
+          gap: 0.5rem;
+        }
+        .info-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>🚀 Hello World DevOps!</h1>
+      <p class="subtitle">
+        Application Node.js déployée automatiquement sur AWS EC2<br />
+        Démonstration d'un pipeline CI/CD complet
+      </p>
+
+      <div class="tech-stack">
+        <span class="tech">Node.js</span>
+        <span class="tech">AWS EC2</span>
+        <span class="tech">GitHub Actions</span>
+        <span class="tech">DevOps</span>
+      </div>
+
+      <div class="status-card">
+        <div class="status-title">✅ Application déployée avec succès!</div>
+        <div class="info-grid">
+          <div class="info-item">
+            <div class="info-label">🕐 Timestamp</div>
+            <div class="info-value" id="timestamp">Loading...</div>
+          </div>
+          <div class="info-item">
+            <div class="info-label">🌍 Environnement</div>
+            <div class="info-value" id="environment">Loading...</div>
+          </div>
+          <div class="info-item">
+            <div class="info-label">🏷️ Version</div>
+            <div class="info-value" id="version">Loading...</div>
+          </div>
+          <div class="info-item">
+            <div class="info-label">☁️ Serveur</div>
+            <div class="info-value" id="server">Loading...</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="footer">
+        💡 Ce projet démontre les compétences DevOps :<br />
+        Automatisation • CI/CD • Cloud AWS • Monitoring
+      </div>
+    </div>
+
+    <script>
+      // Fonction pour récupérer et afficher les informations du serveur
+      async function loadServerInfo() {
+        try {
+          const response = await fetch("/api/health");
+          const data = await response.json();
+
+          document.getElementById("timestamp").textContent = new Date(
+            data.timestamp
+          ).toLocaleString("fr-FR");
+          document.getElementById("environment").textContent = data.environment;
+          document.getElementById("version").textContent = data.version;
+          document.getElementById(
+            "server"
+          ).textContent = `${data.server} (${data.region})`;
+        } catch (error) {
+          console.error("Erreur lors du chargement des infos serveur:", error);
+          document.querySelectorAll(".info-value").forEach((el) => {
+            if (el.textContent === "Loading...") {
+              el.textContent = "Error loading";
+              el.className += " loading";
+            }
+          });
+        }
+      }
+
+      // Charger les infos au chargement de la page
+      document.addEventListener("DOMContentLoaded", loadServerInfo);
+
+      // Actualiser les infos toutes les 30 secondes
+      setInterval(loadServerInfo, 30000);
+    </script>
+  </body>
+</html>

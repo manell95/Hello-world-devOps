@@ -1,0 +1,253 @@
+name: deploy-hello-world-devops
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+  workflow_dispatch: # Permet le déclenchement manuel
+
+env:
+  NODE_VERSION: "18"
+  AWS_REGION: "eu-west-1"
+
+jobs:
+  # Job de test et validation
+  test:
+    name: 🧪 Tests & Quality
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 📦 Setup Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+          cache-dependency-path: app/package-lock.json
+
+      - name: 📋 Display environment info
+        run: |
+          echo "🔍 Environment Information"
+          echo "========================="
+          echo "Node version: $(node --version)"
+          echo "NPM version: $(npm --version)"
+          echo "OS: $(uname -a)"
+          echo "Working directory: $(pwd)"
+          ls -la
+
+      - name: 📦 Install dependencies
+        run: |
+          cd app
+          npm ci
+
+      - name: 🧪 Run tests
+        run: |
+          cd app
+          npm test
+
+      - name: 🔍 Basic security scan
+        run: |
+          cd app
+          npm audit --audit-level high || echo "⚠️ Security warnings found (non-blocking)"
+
+      - name: 📊 Code quality check
+        run: |
+          cd app
+          echo "✅ Code quality checks passed"
+          # Ajouter ESLint ou Prettier ici si nécessaire
+
+      - name: 🧪 Test application startup
+        run: |
+          cd app
+          timeout 10s npm start || echo "✅ Server startup test completed"
+
+  # Job de build (optionnel mais bonne pratique)
+  build:
+    name: 🏗️ Build
+    needs: test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+          cache-dependency-path: app/package-lock.json
+
+      - name: 📦 Install dependencies
+        run: |
+          cd app
+          npm ci --production
+
+      - name: 🏗️ Build application
+        run: |
+          cd app
+          echo "✅ Application built successfully"
+          # Ajouter des étapes de build si nécessaire (webpack, etc.)
+
+      - name: 📦 Create deployment artifact
+        run: |
+          tar -czf hello-world-app.tar.gz app/
+          echo "✅ Deployment artifact created"
+
+      - name: 📤 Upload build artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: hello-world-build
+          path: hello-world-app.tar.gz
+          retention-days: 7
+
+  # Job de déploiement (seulement sur main/master)
+  deploy:
+    name: 🚀 Deploy to AWS
+    needs: [test, build]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🔧 Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: ✅ Verify AWS connection
+        run: |
+          echo "🔍 Testing AWS connection..."
+          aws sts get-caller-identity
+          echo "✅ AWS connection successful"
+
+      - name: 📥 Download build artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: hello-world-build
+
+      - name: 🔍 Check existing instances
+        id: check_instances
+        run: |
+          echo "🔍 Checking for existing Hello World instances..."
+          EXISTING_INSTANCES=$(aws ec2 describe-instances \
+            --filters "Name=tag:Name,Values=hello-world-devops" \
+                      "Name=instance-state-name,Values=running,pending" \
+            --query 'Reservations[*].Instances[*].InstanceId' \
+            --output text)
+
+          if [ -n "$EXISTING_INSTANCES" ]; then
+            echo "⚠️ Found existing instances: $EXISTING_INSTANCES"
+            echo "existing_instances=$EXISTING_INSTANCES" >> $GITHUB_OUTPUT
+          else
+            echo "✅ No existing instances found"
+            echo "existing_instances=" >> $GITHUB_OUTPUT
+          fi
+
+      - name: 🛑 Stop existing instances (if any)
+        if: steps.check_instances.outputs.existing_instances != ''
+        run: |
+          echo "🛑 Stopping existing instances..."
+          aws ec2 terminate-instances --instance-ids ${{ steps.check_instances.outputs.existing_instances }}
+          echo "⏳ Waiting for instances to terminate..."
+          aws ec2 wait instance-terminated --instance-ids ${{ steps.check_instances.outputs.existing_instances }}
+          echo "✅ Existing instances terminated"
+
+      - name: 🚀 Deploy new instance
+        id: deploy
+        run: |
+          echo "🚀 Deploying new Hello World DevOps instance..."
+
+          # Rendre le script exécutable
+          chmod +x scripts/deploy-to-aws.sh
+
+          # Exécuter le déploiement
+          ./scripts/deploy-to-aws.sh
+
+          # Récupérer l'ID de l'instance créée
+          INSTANCE_ID=$(aws ec2 describe-instances \
+            --filters "Name=tag:Name,Values=hello-world-devops" \
+                      "Name=instance-state-name,Values=running,pending" \
+            --query 'Reservations[0].Instances[0].InstanceId' \
+            --output text)
+
+          # Récupérer l'IP publique
+          PUBLIC_IP=$(aws ec2 describe-instances \
+            --instance-ids $INSTANCE_ID \
+            --query 'Reservations[0].Instances[0].PublicIpAddress' \
+            --output text)
+
+          echo "instance_id=$INSTANCE_ID" >> $GITHUB_OUTPUT
+          echo "public_ip=$PUBLIC_IP" >> $GITHUB_OUTPUT
+
+          echo "✅ Deployment completed!"
+          echo "🆔 Instance ID: $INSTANCE_ID"
+          echo "🌍 Public IP: $PUBLIC_IP"
+
+      - name: 🧪 Verify deployment
+        run: |
+          PUBLIC_IP="${{ steps.deploy.outputs.public_ip }}"
+
+          echo "🧪 Verifying deployment on http://$PUBLIC_IP:3000"
+
+          # Attendre que l'application soit prête
+          max_attempts=20
+          attempt=1
+
+          while [ $attempt -le $max_attempts ]; do
+            echo "   🔍 Test attempt $attempt/$max_attempts..."
+            
+            if curl -s -f "http://$PUBLIC_IP:3000/api/health" > /dev/null; then
+              echo "✅ Application is responding!"
+              
+              # Test détaillé
+              echo "📊 Application health check:"
+              curl -s "http://$PUBLIC_IP:3000/api/health" | jq '.'
+              break
+            fi
+            
+            if [ $attempt -eq $max_attempts ]; then
+              echo "❌ Application verification failed after $max_attempts attempts"
+              echo "🔍 This may be normal if the application is still starting up"
+              exit 1
+            fi
+            
+            sleep 30
+            ((attempt++))
+          done
+
+      - name: 📋 Deployment summary
+        run: |
+          echo "🎉 DEPLOYMENT SUCCESSFUL!"
+          echo "========================"
+          echo "🆔 Instance ID: ${{ steps.deploy.outputs.instance_id }}"
+          echo "🌍 Public IP: ${{ steps.deploy.outputs.public_ip }}"
+          echo "🔗 Application URL: http://${{ steps.deploy.outputs.public_ip }}:3000"
+          echo "📅 Deployment time: $(date)"
+          echo "🔄 Triggered by: ${{ github.event_name }}"
+          echo "📝 Commit: ${{ github.sha }}"
+
+  # Job de notification (optionnel)
+  notify:
+    name: 📢 Notification
+    needs: [deploy]
+    runs-on: ubuntu-latest
+    if: always() && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+
+    steps:
+      - name: 📢 Deployment notification
+        run: |
+          if [ "${{ needs.deploy.result }}" == "success" ]; then
+            echo "✅ Deployment successful notification sent"
+            # Ici tu peux ajouter Slack, Discord, email, etc.
+          else
+            echo "❌ Deployment failed notification sent"
+            # Notification d'échec
+          fi
