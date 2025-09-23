@@ -1,0 +1,71 @@
+name: Deploy to AWS
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    # 1. Checkout du code
+    - name: 📥 Checkout code
+      uses: actions/checkout@v4
+    
+    # 2. Configuration Node.js
+    - name: 🟢 Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+    
+    # 3. Installation des dépendances
+    - name: 📦 Install dependencies
+      run: |
+        echo "Installing dependencies..."
+        npm ci
+    
+    # 4. Tests (optionnel)
+    - name: 🧪 Run tests
+      run: |
+        echo "Running tests..."
+        npm test --if-present
+    
+    # 5. Build du projet
+    - name: 🔨 Build project
+      run: |
+        echo "Building project..."
+        npm run build --if-present
+    
+    # 6. Configuration AWS
+    - name: ⚙️ Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: eu-west-1
+    
+    # 7. Test des credentials AWS
+    - name: 🔍 Test AWS connection
+      run: |
+        echo "Testing AWS connection..."
+        aws sts get-caller-identity
+        aws s3 ls
+    
+    # 8. Déploiement
+    - name: 🚀 Deploy to S3
+      run: |
+        echo "Deploying to S3..."
+        # Remplacez YOUR-BUCKET-NAME par votre nom de bucket
+        aws s3 sync ./dist s3://YOUR-BUCKET-NAME --delete
+        # ou pour un site statique :
+        # aws s3 sync ./ s3://YOUR-BUCKET-NAME --delete --exclude "node_modules/*" --exclude ".git/*"
+    
+    # 9. Notification de succès
+    - name: ✅ Deployment successful
+      run: |
+        echo "🎉 Deployment completed successfully!"
+        echo "Site URL: https://YOUR-BUCKET-NAME.s3-website.eu-west-1.amazonaws.com"
