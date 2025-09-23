@@ -7,93 +7,59 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    
     steps:
-      - name: 📥 Checkout code
-        uses: actions/checkout@v4
-      
-      - name: 🟢 Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 18
-      
-      - name: 📦 Install dependencies
-        run: |
-          echo "Installing Node.js dependencies..."
-          npm install
-      
-      - name: 🧪 Run tests (if available)
-        run: |
-          echo "Running tests..."
-          npm test --if-present
-      
-      - name: 🔨 Build application (if build script exists)
-        run: |
-          echo "Building application..."
-          if npm run build --if-present; then
-            echo "✅ Build completed successfully"
-            # Vérifier ce qui a été créé
-            if [ -d "dist" ]; then
-              echo "📁 Contents of dist folder:"
-              ls -la dist/
-            elif [ -d "build" ]; then
-              echo "📁 Contents of build folder:"
-              ls -la build/
-            else
-              echo "📁 No dist/build folder, using root files"
-              ls -la *.html *.css *.js 2>/dev/null || echo "No static files found"
-            fi
-          else
-            echo "ℹ️ No build script found, deploying source files"
-          fi
-      
-      - name: ⚙️ Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: eu-west-1
-      
-      - name: 🔍 Test AWS connection
-        run: |
-          echo "Testing AWS connection..."
-          aws sts get-caller-identity
-          echo "Listing S3 buckets:"
-          aws s3 ls
-      
-      - name: 🚀 Deploy to S3
-        run: |
-          echo "Deploying to S3..."
-          
-          # Définir le nom de votre bucket S3
-          BUCKET_NAME="your-app-bucket-name"  # ⚠️ CHANGEZ CECI
-          
-          # Déployer selon la structure du projet
-          if [ -d "dist" ]; then
-            echo "Deploying from dist folder..."
-            aws s3 sync dist/ s3://$BUCKET_NAME --delete
-          elif [ -d "build" ]; then
-            echo "Deploying from build folder..."
-            aws s3 sync build/ s3://$BUCKET_NAME --delete
-          else
-            echo "Deploying static files from root..."
-            aws s3 sync . s3://$BUCKET_NAME \
-              --delete \
-              --exclude "node_modules/*" \
-              --exclude ".git/*" \
-              --exclude "*.md" \
-              --exclude "package*.json" \
-              --exclude ".github/*"
-          fi
-          
-          echo "🎉 Deployment completed!"
-          echo "🌐 Your site should be available at:"
-          echo "https://$BUCKET_NAME.s3-website.eu-west-1.amazonaws.com"
-      
-      - name: ✅ Success notification
-        run: |
-          echo "🎉 Deployment successful!"
-          echo "📊 Deployment summary:"
-          echo "- ✅ Code checked out"
-          echo "- ✅ Node.js dependencies installed"
-          echo "- ✅ Application built (if applicable)"
-          echo "- ✅ Deployed to AWS S3"
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: 18
+    
+    - name: Install dependencies
+      run: |
+        echo "Installing Node.js dependencies..."
+        npm install
+    
+    - name: Run tests
+      run: |
+        echo "Running tests..."
+        npm test --if-present
+    
+    - name: Build application
+      run: |
+        echo "Building application..."
+        npm run build --if-present
+    
+    - name: List build output
+      run: |
+        echo "Checking build output..."
+        ls -la
+        if [ -d "dist" ]; then
+          echo "dist folder contents:"
+          ls -la dist/
+        fi
+        if [ -d "build" ]; then
+          echo "build folder contents:"
+          ls -la build/
+        fi
+    
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: eu-west-1
+    
+    - name: Test AWS connection
+      run: |
+        echo "Testing AWS connection..."
+        aws sts get-caller-identity
+        aws s3 ls
+    
+    - name: Deploy to S3
+      run: |
+        echo "Ready for deployment!"
+        echo "Configure your bucket name below"
+        # aws s3 sync dist/ s3://your-bucket-name --delete
