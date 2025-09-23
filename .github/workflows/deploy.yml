@@ -1,11 +1,11 @@
-name: Test Node.js Build
+name: Deploy Node.js to AWS
 
 on:
   push:
     branches: [main, master]
 
 jobs:
-  test:
+  deploy:
     runs-on: ubuntu-latest
     
     steps:
@@ -16,17 +16,6 @@ jobs:
       uses: actions/setup-node@v4
       with:
         node-version: 18
-    
-    - name: Check repository content
-      run: |
-        echo "=== Repository contents ==="
-        ls -la
-        if [ -f "package.json" ]; then
-          echo "✅ package.json found:"
-          cat package.json
-        else
-          echo "❌ No package.json found"
-        fi
     
     - name: Install dependencies
       run: |
@@ -46,21 +35,46 @@ jobs:
         else
           echo "⚠️ No build script or no package.json"
         fi
-        
-    - name: List output files
-      run: |
-        echo "=== Final file structure ==="
-        ls -la
-        if [ -d "dist" ]; then
-          echo "=== dist folder ==="
-          ls -la dist/
-        fi
-        if [ -d "build" ]; then
-          echo "=== build folder ==="
-          ls -la build/
-        fi
     
-    - name: Ready for deployment
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: eu-west-1
+    
+    - name: Test AWS connection
       run: |
-        echo "🎉 Build process completed!"
-        echo "Next step: Configure AWS secrets and deploy"
+        echo "Testing AWS connection..."
+        aws sts get-caller-identity
+        echo "Listing S3 buckets:"
+        aws s3 ls
+    
+    - name: Deploy to S3
+      run: |
+        echo "Deploying to S3..."
+        
+        # CHANGEZ LE NOM DE VOTRE BUCKET ICI
+        BUCKET_NAME="votre-nom-bucket-unique"
+        
+        # Déployer selon la structure de votre projet
+        if [ -d "dist" ]; then
+          echo "📁 Deploying from dist/ folder..."
+          aws s3 sync dist/ s3://$BUCKET_NAME --delete
+        elif [ -d "build" ]; then
+          echo "📁 Deploying from build/ folder..."
+          aws s3 sync build/ s3://$BUCKET_NAME --delete
+        else
+          echo "📁 Deploying from root folder..."
+          aws s3 sync . s3://$BUCKET_NAME \
+            --delete \
+            --exclude "node_modules/*" \
+            --exclude ".git/*" \
+            --exclude "*.md" \
+            --exclude "package*.json" \
+            --exclude ".github/*"
+        fi
+        
+        echo "🎉 Deployment completed!"
+        echo "🌐 Your app should be available at:"
+        echo "https://$BUCKET_NAME.s3-website.eu-west-1.amazonaws.com"
