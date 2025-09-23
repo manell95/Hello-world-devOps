@@ -20,13 +20,12 @@ jobs:
       uses: actions/setup-node@v4
       with:
         node-version: '18'
-        cache: 'npm'
     
     # 3. Installation des dépendances
     - name: 📦 Install dependencies
       run: |
         echo "Installing dependencies..."
-        npm ci
+        npm install
     
     # 4. Tests (optionnel)
     - name: 🧪 Run tests
