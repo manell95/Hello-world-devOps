@@ -1,4 +1,4 @@
-name: Simple Deploy Test
+name: Progressive Deploy Test
 
 on:
   push:
@@ -11,7 +11,18 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
       
-      - name: List files
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+      
+      - name: Check Node.js installation
+        run: |
+          echo "=== Node.js version ==="
+          node --version
+          npm --version
+      
+      - name: List files and check package.json
         run: |
           echo "=== Files in repository ==="
           ls -la
@@ -20,11 +31,10 @@ jobs:
             echo "✅ package.json found"
             cat package.json
           else
-            echo "❌ No package.json found"
+            echo "❌ No package.json found - will create a basic one"
           fi
       
       - name: Test simple command
         run: |
-          echo "🎉 Workflow is working!"
+          echo "🎉 Workflow with Node.js is working!"
           echo "Current directory: $(pwd)"
-          echo "Current user: $(whoami)"
