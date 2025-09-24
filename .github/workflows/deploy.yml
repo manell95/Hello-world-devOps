@@ -25,8 +25,6 @@ jobs:
       uses: actions/setup-node@v4
       with:
         node-version: ${{ env.NODE_VERSION }}
-        cache: 'npm'
-        cache-dependency-path: app/package.json
     
     - name: 📋 Display environment info
       run: |
@@ -60,7 +58,7 @@ jobs:
         cd app
         timeout 10s npm start || echo "✅ Server startup test completed"
 
-  # Job de build (simplifié)
+  # Job de build
   build:
     name: 🏗️ Build
     needs: test
@@ -74,8 +72,6 @@ jobs:
       uses: actions/setup-node@v4
       with:
         node-version: ${{ env.NODE_VERSION }}
-        cache: 'npm'
-        cache-dependency-path: app/package.json
     
     - name: 📦 Install dependencies
       run: |
@@ -171,33 +167,20 @@ jobs:
         # Exécuter le déploiement
         ./scripts/deploy-to-aws.sh
         
-        # Récupérer l'ID de l'instance créée (avec retry)
+        # Récupérer l'ID de l'instance créée
         echo "🔍 Searching for new instance..."
-        sleep 15  # Attendre que l'instance soit visible
+        sleep 15
         
-        for i in {1..5}; do
-          INSTANCE_ID=$(aws ec2 describe-instances \
-            --filters "Name=tag:Name,Values=hello-world-devops" \
-                      "Name=instance-state-name,Values=running,pending" \
-            --query 'Reservations[0].Instances[0].InstanceId' \
-            --output text 2>/dev/null)
-          
-          if [ "$INSTANCE_ID" != "None" ] && [ -n "$INSTANCE_ID" ]; then
-            break
-          fi
-          
-          echo "⏳ Attempt $i/5: Instance not found yet, waiting..."
-          sleep 10
-        done
+        INSTANCE_ID=$(aws ec2 describe-instances \
+          --filters "Name=tag:Name,Values=hello-world-devops" \
+                    "Name=instance-state-name,Values=running,pending" \
+          --query 'Reservations[0].Instances[0].InstanceId' \
+          --output text)
         
         if [ "$INSTANCE_ID" = "None" ] || [ -z "$INSTANCE_ID" ]; then
           echo "❌ Could not find the deployed instance"
           exit 1
         fi
-        
-        # Attendre que l'instance soit en running
-        echo "⏳ Waiting for instance to be running..."
-        aws ec2 wait instance-running --instance-ids $INSTANCE_ID
         
         # Récupérer l'IP publique
         PUBLIC_IP=$(aws ec2 describe-instances \
@@ -212,28 +195,10 @@ jobs:
         echo "🆔 Instance ID: $INSTANCE_ID"
         echo "🌍 Public IP: $PUBLIC_IP"
     
-    - name: 🧪 Verify deployment (optional)
-      continue-on-error: true
-      run: |
-        PUBLIC_IP="${{ steps.deploy.outputs.public_ip }}"
-        
-        echo "🧪 Quick deployment verification"
-        echo "🔗 Application should be available at: http://$PUBLIC_IP:3000"
-        echo "⏰ Note: The application installation is happening in the background"
-        echo "📋 It may take 5-10 minutes to be fully ready"
-        
-        # Test rapide (non bloquant)
-        echo "🧪 Quick connectivity test..."
-        if timeout 30s bash -c "while ! nc -z $PUBLIC_IP 22; do sleep 1; done"; then
-          echo "✅ Instance is reachable via SSH"
-        else
-          echo "⚠️ SSH connectivity test timeout (non-critical)"
-        fi
-    
     - name: 📋 Deployment summary
       run: |
-        echo "🎉 DEPLOYMENT COMPLETED SUCCESSFULLY!"
-        echo "===================================="
+        echo "🎉 DEPLOYMENT COMPLETED!"
+        echo "======================="
         echo "🆔 Instance ID: ${{ steps.deploy.outputs.instance_id }}"
         echo "🌍 Public IP: ${{ steps.deploy.outputs.public_ip }}"
         echo "🔗 Application URL: http://${{ steps.deploy.outputs.public_ip }}:3000"
@@ -241,14 +206,10 @@ jobs:
         echo "🔄 Triggered by: ${{ github.event_name }}"
         echo "📝 Commit: ${{ github.sha }}"
         echo ""
-        echo "⏰ IMPORTANT: The application is installing in the background!"
-        echo "🕐 Please wait 5-10 minutes before accessing the URL"
+        echo "⏰ The application is installing in the background"
+        echo "🕐 Wait 5-10 minutes before accessing the URL"
         echo ""
-        echo "🧪 Manual verification:"
-        echo "   curl http://${{ steps.deploy.outputs.public_ip }}:3000/api/health"
-        echo ""
-        echo "🔑 SSH access:"
-        echo "   ssh -i ~/.ssh/hello-world-key.pem ec2-user@${{ steps.deploy.outputs.public_ip }}"
+        echo "🧪 Test manually: curl http://${{ steps.deploy.outputs.public_ip }}:3000/api/health"
 
   # Job de notification
   notify:
@@ -261,12 +222,8 @@ jobs:
     - name: 📢 Deployment notification
       run: |
         if [ "${{ needs.deploy.result }}" == "success" ]; then
-          echo "✅ DEPLOYMENT SUCCESSFUL!"
-          echo "========================"
-          echo "🔗 Application URL: http://${{ needs.deploy.outputs.public_ip }}:3000"
-          echo "⏰ Wait 5-10 minutes for full application startup"
+          echo "✅ Deployment successful!"
+          echo "🔗 Application: http://${{ needs.deploy.outputs.public_ip }}:3000"
         else
-          echo "❌ DEPLOYMENT FAILED!"
-          echo "==================="
-          echo "📋 Check the deployment logs above for details"
+          echo "❌ Deployment failed!"
         fi
