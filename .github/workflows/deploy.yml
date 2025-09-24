@@ -1,229 +1,53 @@
-name: 🚀 Deploy Hello World DevOps
+# Version de test ultra-simple
+cat > .github/workflows/deploy.yml << 'EOF'
+name: 🚀 Hello World Test
 
 on:
   push:
-    branches: [ main, master ]
-  pull_request:
-    branches: [ main, master ]
-  workflow_dispatch: # Permet le déclenchement manuel
-
-env:
-  NODE_VERSION: '18'
-  AWS_REGION: 'eu-west-1'
+    branches: [ main ]
+  workflow_dispatch:
 
 jobs:
-  # Job de test et validation
   test:
-    name: 🧪 Tests & Quality
+    name: Test Application
     runs-on: ubuntu-latest
     
     steps:
-    - name: 📥 Checkout code
+    - name: Checkout code
       uses: actions/checkout@v4
     
-    - name: 📦 Setup Node.js ${{ env.NODE_VERSION }}
+    - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
-        node-version: ${{ env.NODE_VERSION }}
+        node-version: '18'
     
-    - name: 📋 Display environment info
+    - name: List files
       run: |
-        echo "🔍 Environment Information"
-        echo "========================="
-        echo "Node version: $(node --version)"
-        echo "NPM version: $(npm --version)"
-        echo "OS: $(uname -a)"
-        echo "Working directory: $(pwd)"
+        echo "📋 Repository contents:"
         ls -la
-        echo "App directory contents:"
+        echo "📋 App directory:"
         ls -la app/
     
-    - name: 📦 Install dependencies
+    - name: Check package.json
+      run: |
+        echo "📋 Package.json content:"
+        cat app/package.json
+    
+    - name: Install dependencies
       run: |
         cd app
         npm install
     
-    - name: 🧪 Run tests
+    - name: Run tests
       run: |
         cd app
         npm test
     
-    - name: 🔍 Basic security scan
-      run: |
-        cd app
-        npm audit --audit-level high || echo "⚠️ Security warnings found (non-blocking)"
-    
-    - name: 🧪 Test application startup
-      run: |
-        cd app
-        timeout 10s npm start || echo "✅ Server startup test completed"
+    - name: Success
+      run: echo "✅ All tests passed!"
+EOF
 
-  # Job de build
-  build:
-    name: 🏗️ Build
-    needs: test
-    runs-on: ubuntu-latest
-    
-    steps:
-    - name: 📥 Checkout code
-      uses: actions/checkout@v4
-    
-    - name: 📦 Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: ${{ env.NODE_VERSION }}
-    
-    - name: 📦 Install dependencies
-      run: |
-        cd app
-        npm install --production
-    
-    - name: ✅ Verify application structure
-      run: |
-        cd app
-        echo "✅ Application structure verified"
-        echo "📋 Files present:"
-        ls -la
-        echo "📋 Package.json scripts:"
-        cat package.json | grep -A 10 "scripts"
-    
-    - name: 📦 Create deployment artifact
-      run: |
-        tar -czf hello-world-app.tar.gz app/
-        echo "✅ Deployment artifact created"
-        ls -la hello-world-app.tar.gz
-    
-    - name: 📤 Upload build artifacts
-      uses: actions/upload-artifact@v3
-      with:
-        name: hello-world-build
-        path: hello-world-app.tar.gz
-        retention-days: 7
-
-  # Job de déploiement (seulement sur main/master)
-  deploy:
-    name: 🚀 Deploy to AWS
-    needs: [test, build]
-    runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
-    
-    steps:
-    - name: 📥 Checkout code
-      uses: actions/checkout@v4
-    
-    - name: 🔧 Configure AWS credentials
-      uses: aws-actions/configure-aws-credentials@v4
-      with:
-        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        aws-region: ${{ env.AWS_REGION }}
-    
-    - name: ✅ Verify AWS connection
-      run: |
-        echo "🔍 Testing AWS connection..."
-        aws sts get-caller-identity
-        echo "✅ AWS connection successful"
-    
-    - name: 📥 Download build artifacts
-      uses: actions/download-artifact@v3
-      with:
-        name: hello-world-build
-    
-    - name: 🔍 Check existing instances
-      id: check_instances
-      run: |
-        echo "🔍 Checking for existing Hello World instances..."
-        EXISTING_INSTANCES=$(aws ec2 describe-instances \
-          --filters "Name=tag:Name,Values=hello-world-devops" \
-                    "Name=instance-state-name,Values=running,pending" \
-          --query 'Reservations[*].Instances[*].InstanceId' \
-          --output text)
-        
-        if [ -n "$EXISTING_INSTANCES" ] && [ "$EXISTING_INSTANCES" != "None" ]; then
-          echo "⚠️ Found existing instances: $EXISTING_INSTANCES"
-          echo "existing_instances=$EXISTING_INSTANCES" >> $GITHUB_OUTPUT
-        else
-          echo "✅ No existing instances found"
-          echo "existing_instances=" >> $GITHUB_OUTPUT
-        fi
-    
-    - name: 🛑 Stop existing instances (if any)
-      if: steps.check_instances.outputs.existing_instances != ''
-      run: |
-        echo "🛑 Stopping existing instances..."
-        aws ec2 terminate-instances --instance-ids ${{ steps.check_instances.outputs.existing_instances }}
-        echo "⏳ Waiting for instances to terminate..."
-        aws ec2 wait instance-terminated --instance-ids ${{ steps.check_instances.outputs.existing_instances }}
-        echo "✅ Existing instances terminated"
-    
-    - name: 🚀 Deploy new instance
-      id: deploy
-      run: |
-        echo "🚀 Deploying new Hello World DevOps instance..."
-        
-        # Rendre le script exécutable
-        chmod +x scripts/deploy-to-aws.sh
-        
-        # Exécuter le déploiement
-        ./scripts/deploy-to-aws.sh
-        
-        # Récupérer l'ID de l'instance créée
-        echo "🔍 Searching for new instance..."
-        sleep 15
-        
-        INSTANCE_ID=$(aws ec2 describe-instances \
-          --filters "Name=tag:Name,Values=hello-world-devops" \
-                    "Name=instance-state-name,Values=running,pending" \
-          --query 'Reservations[0].Instances[0].InstanceId' \
-          --output text)
-        
-        if [ "$INSTANCE_ID" = "None" ] || [ -z "$INSTANCE_ID" ]; then
-          echo "❌ Could not find the deployed instance"
-          exit 1
-        fi
-        
-        # Récupérer l'IP publique
-        PUBLIC_IP=$(aws ec2 describe-instances \
-          --instance-ids $INSTANCE_ID \
-          --query 'Reservations[0].Instances[0].PublicIpAddress' \
-          --output text)
-        
-        echo "instance_id=$INSTANCE_ID" >> $GITHUB_OUTPUT
-        echo "public_ip=$PUBLIC_IP" >> $GITHUB_OUTPUT
-        
-        echo "✅ Deployment completed!"
-        echo "🆔 Instance ID: $INSTANCE_ID"
-        echo "🌍 Public IP: $PUBLIC_IP"
-    
-    - name: 📋 Deployment summary
-      run: |
-        echo "🎉 DEPLOYMENT COMPLETED!"
-        echo "======================="
-        echo "🆔 Instance ID: ${{ steps.deploy.outputs.instance_id }}"
-        echo "🌍 Public IP: ${{ steps.deploy.outputs.public_ip }}"
-        echo "🔗 Application URL: http://${{ steps.deploy.outputs.public_ip }}:3000"
-        echo "📅 Deployment time: $(date)"
-        echo "🔄 Triggered by: ${{ github.event_name }}"
-        echo "📝 Commit: ${{ github.sha }}"
-        echo ""
-        echo "⏰ The application is installing in the background"
-        echo "🕐 Wait 5-10 minutes before accessing the URL"
-        echo ""
-        echo "🧪 Test manually: curl http://${{ steps.deploy.outputs.public_ip }}:3000/api/health"
-
-  # Job de notification
-  notify:
-    name: 📢 Notification
-    needs: [deploy]
-    runs-on: ubuntu-latest
-    if: always() && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
-    
-    steps:
-    - name: 📢 Deployment notification
-      run: |
-        if [ "${{ needs.deploy.result }}" == "success" ]; then
-          echo "✅ Deployment successful!"
-          echo "🔗 Application: http://${{ needs.deploy.outputs.public_ip }}:3000"
-        else
-          echo "❌ Deployment failed!"
-        fi
+# Commit et push
+git add .github/workflows/deploy.yml
+git commit -m "🔧 Simplified workflow for debugging"
+git push
