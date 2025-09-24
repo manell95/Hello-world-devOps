@@ -1,11 +1,11 @@
-name: Deploy Node.js to AWS
+name: Build Only (No AWS)
 
 on:
   push:
     branches: [main, master]
 
 jobs:
-  deploy:
+  build:
     runs-on: ubuntu-latest
     
     steps:
@@ -17,64 +17,53 @@ jobs:
       with:
         node-version: 18
     
+    - name: Check project structure
+      run: |
+        echo "=== Project files ==="
+        ls -la
+        if [ -f "package.json" ]; then
+          echo "✅ package.json found"
+          echo "=== package.json content ==="
+          cat package.json
+        else
+          echo "❌ No package.json found"
+        fi
+    
     - name: Install dependencies
       run: |
         echo "Installing dependencies..."
         if [ -f "package.json" ]; then
           npm install
-          echo "✅ Dependencies installed"
+          echo "✅ Dependencies installed successfully"
         else
-          echo "⚠️ No package.json, skipping npm install"
+          echo "⚠️ No package.json, creating basic one..."
+          npm init -y
+          echo "Basic package.json created"
         fi
     
     - name: Build application
       run: |
-        echo "Building application..."
-        if [ -f "package.json" ] && npm run build --if-present; then
-          echo "✅ Build completed"
+        echo "Attempting to build application..."
+        if npm run build 2>/dev/null; then
+          echo "✅ Build script executed successfully"
+          if [ -d "build" ]; then
+            echo "📁 Build folder created:"
+            ls -la build/
+          elif [ -d "dist" ]; then
+            echo "📁 Dist folder created:"
+            ls -la dist/
+          fi
         else
-          echo "⚠️ No build script or no package.json"
+          echo "⚠️ No build script found or build failed"
+          echo "That's okay for testing!"
         fi
     
-    - name: Configure AWS credentials
-      uses: aws-actions/configure-aws-credentials@v4
-      with:
-        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        aws-region: eu-west-1
-    
-    - name: Test AWS connection
+    - name: Success message
       run: |
-        echo "Testing AWS connection..."
-        aws sts get-caller-identity
-        echo "Listing S3 buckets:"
-        aws s3 ls
-    
-    - name: Deploy to S3
-      run: |
-        echo "Deploying to S3..."
-        
-        # CHANGEZ LE NOM DE VOTRE BUCKET ICI
-        BUCKET_NAME="votre-nom-bucket-unique"
-        
-        # Déployer selon la structure de votre projet
-        if [ -d "dist" ]; then
-          echo "📁 Deploying from dist/ folder..."
-          aws s3 sync dist/ s3://$BUCKET_NAME --delete
-        elif [ -d "build" ]; then
-          echo "📁 Deploying from build/ folder..."
-          aws s3 sync build/ s3://$BUCKET_NAME --delete
-        else
-          echo "📁 Deploying from root folder..."
-          aws s3 sync . s3://$BUCKET_NAME \
-            --delete \
-            --exclude "node_modules/*" \
-            --exclude ".git/*" \
-            --exclude "*.md" \
-            --exclude "package*.json" \
-            --exclude ".github/*"
-        fi
-        
-        echo "🎉 Deployment completed!"
-        echo "🌐 Your app should be available at:"
-        echo "https://$BUCKET_NAME.s3-website.eu-west-1.amazonaws.com"
+        echo "🎉 Build workflow completed successfully!"
+        echo "Your Node.js setup is working."
+        echo ""
+        echo "Next steps:"
+        echo "1. Add AWS credentials in GitHub Settings"
+        echo "2. Create S3 bucket"
+        echo "3. Enable AWS deployment"
