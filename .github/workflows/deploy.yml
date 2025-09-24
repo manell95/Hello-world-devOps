@@ -1,6 +1,6 @@
-# Version de test ultra-simple
+# Version ultra-simple pour test
 cat > .github/workflows/deploy.yml << 'EOF'
-name: 🚀 Hello World Test
+name: 🚀 Deploy Hello World DevOps
 
 on:
   push:
@@ -9,45 +9,15 @@ on:
 
 jobs:
   test:
-    name: Test Application
     runs-on: ubuntu-latest
-    
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-    
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
+    - uses: actions/checkout@v4
+    - uses: actions/setup-node@v4
       with:
         node-version: '18'
-    
-    - name: List files
-      run: |
-        echo "📋 Repository contents:"
-        ls -la
-        echo "📋 App directory:"
-        ls -la app/
-    
-    - name: Check package.json
-      run: |
-        echo "📋 Package.json content:"
-        cat app/package.json
-    
-    - name: Install dependencies
-      run: |
+    - run: |
         cd app
         npm install
-    
-    - name: Run tests
-      run: |
-        cd app
         npm test
-    
-    - name: Success
-      run: echo "✅ All tests passed!"
+        echo "✅ Tests passed!"
 EOF
-
-# Commit et push
-git add .github/workflows/deploy.yml
-git commit -m "🔧 Simplified workflow for debugging"
-git push
