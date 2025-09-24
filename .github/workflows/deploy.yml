@@ -1,69 +1,33 @@
-name: Build Only (No AWS)
+name: Build and Deploy to AWS
 
 on:
   push:
     branches: [main, master]
 
 jobs:
-  build:
+  build-and-deploy:
     runs-on: ubuntu-latest
-    
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-    
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: 18
-    
-    - name: Check project structure
-      run: |
-        echo "=== Project files ==="
-        ls -la
-        if [ -f "package.json" ]; then
-          echo "✅ package.json found"
-          echo "=== package.json content ==="
-          cat package.json
-        else
-          echo "❌ No package.json found"
-        fi
-    
-    - name: Install dependencies
-      run: |
-        echo "Installing dependencies..."
-        if [ -f "package.json" ]; then
-          npm install
-          echo "✅ Dependencies installed successfully"
-        else
-          echo "⚠️ No package.json, creating basic one..."
-          npm init -y
-          echo "Basic package.json created"
-        fi
-    
-    - name: Build application
-      run: |
-        echo "Attempting to build application..."
-        if npm run build 2>/dev/null; then
-          echo "✅ Build script executed successfully"
-          if [ -d "build" ]; then
-            echo "📁 Build folder created:"
-            ls -la build/
-          elif [ -d "dist" ]; then
-            echo "📁 Dist folder created:"
-            ls -la dist/
-          fi
-        else
-          echo "⚠️ No build script found or build failed"
-          echo "That's okay for testing!"
-        fi
-    
-    - name: Success message
-      run: |
-        echo "🎉 Build workflow completed successfully!"
-        echo "Your Node.js setup is working."
-        echo ""
-        echo "Next steps:"
-        echo "1. Add AWS credentials in GitHub Settings"
-        echo "2. Create S3 bucket"
-        echo "3. Enable AWS deployment"
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build application
+        run: npm run build
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: eu-west-1
+
+      - name: Deploy to S3
+        run: aws s3 cp ./build s3://<ton-bucket-s3>/ --recursive
