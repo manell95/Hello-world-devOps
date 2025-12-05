@@ -29,6 +29,12 @@ coverage/
 .aws/
 aws-credentials.json
 
+# SSH Keys (NEVER commit these!)
+*.pem
+*.key
+id_rsa*
+*.ppk
+
 # Logs
 logs
 *.log
@@ -64,3 +70,59 @@ deployment-info.txt
 
 # Local development
 .local/
+# Clés privées - NE JAMAIS COMMITER
+*.pem
+*.key
+
+# Node.js
+node_modules/
+npm-debug.log*
+
+# Environnement
+.env
+.env.local
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+
+# Clés privées - JAMAIS COMMITER
+*.pem
+*.key
+*.ppk
+
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+
+# Logs
+logs/
+*.log
+
+# Environnement
+.env
+.env.local
+.env.production
+
+# AWS
+.aws/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Build
+dist/
+build/
