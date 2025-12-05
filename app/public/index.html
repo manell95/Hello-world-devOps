@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Hello World DevOps</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        color: white;
+      }
+      .container {
+        background: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(10px);
+        border-radius: 20px;
+        padding: 60px;
+        text-align: center;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        max-width: 600px;
+      }
+      h1 {
+        font-size: 3.5em;
+        margin-bottom: 20px;
+        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+      }
+      .emoji {
+        font-size: 4em;
+        margin: 20px 0;
+      }
+      p {
+        font-size: 1.3em;
+        margin: 15px 0;
+        line-height: 1.6;
+      }
+      .badge {
+        display: inline-block;
+        background: rgba(255, 255, 255, 0.2);
+        padding: 10px 20px;
+        border-radius: 25px;
+        margin: 10px 5px;
+        font-size: 0.9em;
+      }
+      .info {
+        margin-top: 30px;
+        font-size: 0.9em;
+        opacity: 0.8;
+      }
+      #systemInfo {
+        margin-top: 20px;
+        padding: 15px;
+        background: rgba(0, 0, 0, 0.2);
+        border-radius: 10px;
+        font-family: "Courier New", monospace;
+        font-size: 0.85em;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="emoji">🚀</div>
+      <h1>Hello World!</h1>
+      <p>Bienvenue sur mon projet DevOps</p>
+
+      <div>
+        <span class="badge">Node.js</span>
+        <span class="badge">AWS EC2</span>
+        <span class="badge">GitHub Actions</span>
+        <span class="badge">CI/CD</span>
+      </div>
+
+      <div class="info">
+        <p>✅ Déployé automatiquement via GitHub Actions</p>
+        <p>☁️ Hébergé sur AWS EC2</p>
+        <p>⚙️ Configuré avec script User Data</p>
+      </div>
+
+      <div id="systemInfo">Chargement des informations système...</div>
+    </div>
+
+    <script>
+      fetch("/api/info")
+        .then((res) => res.json())
+        .then((data) => {
+          document.getElementById("systemInfo").innerHTML = `
+                    🖥️ Hostname: ${data.hostname}<br>
+                    🕒 Timestamp: ${new Date(
+                      data.timestamp
+                    ).toLocaleString()}<br>
+                    💻 Platform: ${data.platform}<br>
+                    🔧 Node Version: ${data.version}
+                `;
+        })
+        .catch((err) => {
+          document.getElementById("systemInfo").innerHTML =
+            "❌ Impossible de charger les infos système";
+        });
+    </script>
+  </body>
+</html>
