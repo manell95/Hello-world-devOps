@@ -2,13 +2,7 @@ name: 🚀 Deploy to AWS EC2
 
 on:
   push:
-    branches:
-      - master
-      - main
-  pull_request:
-    branches:
-      - master
-      - main
+    branches: [master, main]
   workflow_dispatch:
 
 env:
@@ -18,9 +12,8 @@ jobs:
   test:
     name: 🧪 Test Application
     runs-on: ubuntu-latest
-
     steps:
-      - name: 📥 Checkout code
+      - name: 📥 Checkout
         uses: actions/checkout@v4
 
       - name: 🔧 Setup Node.js
@@ -31,13 +24,7 @@ jobs:
       - name: 📦 Install dependencies
         run: |
           cd app
-          npm install
-
-      - name: ✅ Verify files
-        run: |
-          cd app
-          ls -la
-          echo "✅ Structure vérifiée"
+          npm ci
 
   deploy:
     name: 🚀 Deploy to EC2
@@ -46,79 +33,44 @@ jobs:
     if: github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main'
 
     steps:
-      - name: 📥 Checkout code
+      - name: 📥 Checkout
         uses: actions/checkout@v4
 
       - name: 🔐 Configure SSH
-        env:
-          PRIVATE_KEY: ${{ secrets.EC2_SSH_KEY }}
-          HOST: ${{ secrets.EC2_HOST }}
-          USER: ${{ secrets.EC2_USER }}
         run: |
           mkdir -p ~/.ssh
-          echo "$PRIVATE_KEY" > ~/.ssh/private_key.pem
-          chmod 600 ~/.ssh/private_key.pem
-          ssh-keyscan -H $HOST >> ~/.ssh/known_hosts
+          echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
 
-      - name: 🔍 Test SSH Connection
-        env:
-          HOST: ${{ secrets.EC2_HOST }}
-          USER: ${{ secrets.EC2_USER }}
+      - name: 🔍 Test Connection
         run: |
-          ssh -i ~/.ssh/private_key.pem -o StrictHostKeyChecking=no ${USER}@${HOST} "echo '✅ SSH connection successful'"
+          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no \
+            ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} \
+            'echo "✅ SSH OK"'
 
-      - name: 🚀 Deploy Application
-        env:
-          HOST: ${{ secrets.EC2_HOST }}
-          USER: ${{ secrets.EC2_USER }}
+      - name: 🚀 Deploy
         run: |
-          ssh -i ~/.ssh/private_key.pem -o StrictHostKeyChecking=no ${USER}@${HOST} << 'EOF'
+          ssh -i ~/.ssh/id_rsa ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
             set -e
-            
-            echo "=========================================="
-            echo "🚀 Début du déploiement"
-            echo "📅 $(date)"
-            echo "=========================================="
-            
+            echo "🔄 Mise à jour du code..."
             cd /home/nodeapp/app
-            
-            echo ""
-            echo "📂 Pull des dernières modifications..."
             sudo -u nodeapp git pull origin master || sudo -u nodeapp git pull origin main
             
-            echo ""
-            echo "📦 Installation des dépendances..."
+            echo "📦 Installation dépendances..."
             cd app
             sudo -u nodeapp npm install --production
             
-            echo ""
-            echo "🔄 Redémarrage de l'application avec PM2..."
-            sudo -u nodeapp pm2 restart hello-world-app
+            echo "🔄 Redémarrage PM2..."
+            sudo -u nodeapp pm2 restart hello-world-app 2>/dev/null || \
+            sudo -u nodeapp pm2 start server.js --name hello-world-app
             
-            sleep 3
+            echo "📊 Statut PM2:"
+            sudo -u nodeapp pm2 list
             
-            echo ""
-            echo "📊 Statut de l'application:"
-            sudo -u nodeapp pm2 status
-            
-            echo ""
-            echo "🔍 Vérification de santé..."
-            curl -f http://localhost:3000/health || echo "⚠️ Health check échoué"
-            
-            echo ""
-            echo "=========================================="
-            echo "✅ Déploiement terminé avec succès!"
-            echo "📅 $(date)"
-            echo "=========================================="
+            echo "✅ Déploiement terminé"
           EOF
 
       - name: 🧹 Cleanup
         if: always()
-        run: rm -f ~/.ssh/private_key.pem
-
-      - name: ✅ Deployment Success
-        if: success()
-        run: |
-          echo "=========================================="
-          echo "🎉 Déploiement réussi sur EC2!"
-          echo "=========================================="
+        run: rm -f ~/.ssh/id_rsa
