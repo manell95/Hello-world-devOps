@@ -31,3 +31,7 @@ app.listen(PORT, "0.0.0.0", () => {
   console.log(`✅ Serveur démarré sur http://0.0.0.0:${PORT}`);
   console.log(`📅 Date: ${new Date().toISOString()}`);
 });
+
+app.listen(port, "0.0.0.0", () => {
+  console.log(`Server is running on port ${port}`);
+});
