@@ -1,2 +1,115 @@
-node_modules/
+# ==========================================
+# CREDENTIALS & SECRETS - NEVER COMMIT!
+# ==========================================
 *.pem
+*.key
+*.ppk
+.env
+.env.local
+.env.*.local
+*.crt
+*.p12
+*.pfx
+aws-credentials.json
+.aws/
+
+# ==========================================
+# NODE.JS
+# ==========================================
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+.npm
+package-lock.json
+yarn.lock
+
+# ==========================================
+# LOGS
+# ==========================================
+logs/
+*.log
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+# ==========================================
+# BUILD & DIST
+# ==========================================
+dist/
+build/
+out/
+.next/
+.nuxt/
+.cache/
+public/bundle.*
+
+# ==========================================
+# TESTING
+# ==========================================
+coverage/
+.nyc_output/
+*.lcov
+.coverage
+
+# ==========================================
+# OS FILES
+# ==========================================
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+Desktop.ini
+
+# ==========================================
+# IDE & EDITORS
+# ==========================================
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+*.swp
+*.swo
+*~
+.project
+.classpath
+.settings/
+
+# ==========================================
+# TEMPORARY FILES
+# ==========================================
+tmp/
+temp/
+*.tmp
+*.bak
+*.cache
+Untitled-*
+scratch.*
+
+# ==========================================
+# TERRAFORM (si utilisé)
+# ==========================================
+*.tfstate
+*.tfstate.backup
+.terraform/
+.terraform.lock.hcl
+
+# ==========================================
+# DOCKER (si utilisé)
+# ==========================================
+docker-compose.override.yml
+.dockerignore
+
+# ==========================================
+# MISC
+# ==========================================
+.serverless/
+.fusebox/
+.dynamodb/
+.tern-port
+.vercel
